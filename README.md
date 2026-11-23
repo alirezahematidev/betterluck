@@ -80,18 +80,28 @@ Commits follow [Conventional Commits](https://www.conventionalcommits.org/) (`fe
 
 ## Releasing
 
-Releases use [release-it](https://github.com/release-it/release-it). A release runs the checks, bumps the version, updates `CHANGELOG.md`, tags `vX.Y.Z`, creates a GitHub release, and publishes to npm.
+Releases use [release-it](https://github.com/release-it/release-it) and [Conventional Commits](https://www.conventionalcommits.org/). Each release runs the checks, bumps the version, updates `CHANGELOG.md`, tags `vX.Y.Z`, creates a GitHub release, and publishes to npm with provenance.
+
+**From GitHub (recommended)**
+
+1. Open **Actions → Release → Run workflow**. Tick **dry run** first if you want to check everything without publishing.
+2. Leave the increment on `auto` to follow your commits (`feat` → minor, `fix` → patch, breaking → major), or pick one yourself.
+3. The workflow _stages_ the package on npm. Approve it with 2FA at [npmjs.com → Staged packages](https://www.npmjs.com/settings/alirezahematidev/staged-packages), or run `npm stage approve <id>` (npm 12+). The new version goes live once you approve it.
+
+The workflow authenticates with the `NPM_TOKEN` repository secret, or with npm [trusted publishing](https://docs.npmjs.com/trusted-publishers) if no token is set.
+
+**From your machine**
 
 ```sh
-pnpm release --dry-run        # preview
-pnpm release minor            # e.g. 0.0.0 → 0.1.0
+npm login                                  # once
+export GITHUB_TOKEN=$(gh auth token)       # for the GitHub release
+pnpm release --dry-run                     # preview
+pnpm release                               # publishes directly, asking for your 2FA code
 ```
 
-To release from your machine, run `npm login` once, set `GITHUB_TOKEN` (for example `export GITHUB_TOKEN=$(gh auth token)`), and run the command from a clean `main` branch.
+Run these from a clean `main` branch.
 
-To release from GitHub instead, run the **Release** workflow. The default `auto` increment follows your commits (`feat` → minor, `fix` → patch, breaking → major); tick **dry run** first to check everything without publishing. It publishes with npm provenance, using either [trusted publishing](https://docs.npmjs.com/trusted-publishers) (recommended: register this repository's `release.yml` for the package on npmjs.com) or an `NPM_TOKEN` secret.
-
-Every push to `main` redeploys the playground to GitHub Pages.
+Every push to `main` also redeploys the playground to GitHub Pages.
 
 ## License
 

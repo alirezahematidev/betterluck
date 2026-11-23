@@ -20,8 +20,7 @@
   },
   "hooks": {
     "before:init": ["pnpm -w run check"],
-    "after:bump": ["pnpm run build", "pnpm run lint:package"],
-    "after:release": "echo Released ${name} v${version} to npm and GitHub."
+    "after:bump": ["pnpm run build", "pnpm run lint:package"]
   },
   "plugins": {
     "@release-it/conventional-changelog": {

@@ -1,8 +1,10 @@
 name: Release
 
-# Bumps the version, updates CHANGELOG.md, tags, pushes, creates a GitHub release and publishes to
-# npm with provenance. Authenticates with the NPM_TOKEN secret when present, otherwise with npm
-# trusted publishing (OIDC), which must then be configured for this repository on npmjs.com.
+# Bumps the version, updates CHANGELOG.md, tags, pushes, creates a GitHub release and stages the
+# package on npm with provenance. A maintainer then approves the staged version with 2FA, at
+# https://www.npmjs.com/settings/<user>/staged-packages or with `npm stage approve <id>` (npm 12+).
+# Authenticates with the NPM_TOKEN secret when present, otherwise with npm trusted publishing (OIDC),
+# which must then be configured for this repository on npmjs.com.
 on:
   workflow_dispatch:
     inputs:
@@ -57,7 +59,7 @@ jobs:
           INCREMENT: ${{ inputs.increment }}
           DRY_RUN: ${{ inputs.dry_run }}
         run: |
-          args=(--ci --npm.publishArgs=--provenance)
+          args=(--ci --npm.stage --npm.publishArgs=--provenance)
           if [ "$INCREMENT" != "auto" ]; then args=("$INCREMENT" "${args[@]}"); fi
           # With a token, release-it verifies npm auth before changing anything. Trusted
           # publishing has no credentials until publish time, so the checks can't run.
