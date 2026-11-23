@@ -1,8 +1,8 @@
 name: Release
 
 # Bumps the version, updates CHANGELOG.md, tags, pushes, creates a GitHub release and publishes to
-# npm with provenance. Publishing uses npm trusted publishing (OIDC) when it's configured for this
-# repository on npmjs.com, or the NPM_TOKEN secret otherwise.
+# npm with provenance. Authenticates with the NPM_TOKEN secret when present, otherwise with npm
+# trusted publishing (OIDC), which must then be configured for this repository on npmjs.com.
 on:
   workflow_dispatch:
     inputs:
@@ -11,10 +11,18 @@ on:
         type: choice
         options: [patch, minor, major, prepatch, preminor, premajor, prerelease]
         default: patch
+      dry_run:
+        description: "Dry run: verify everything, including npm auth, without publishing, tagging or pushing"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
   id-token: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   release:
@@ -35,9 +43,23 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      # release-it only logs its hooks during a dry run, so run the checks and build explicitly.
+      - name: Check and build (dry run)
+        if: inputs.dry_run
+        run: |
+          pnpm check
+          pnpm --filter betterluck build
       - name: Release
         working-directory: packages/betterluck
-        run: pnpm exec release-it ${{ inputs.increment }} --ci --npm.skipChecks --npm.publishArgs=--provenance
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          INCREMENT: ${{ inputs.increment }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          args=("$INCREMENT" --ci --npm.publishArgs=--provenance)
+          # With a token, release-it verifies npm auth before changing anything. Trusted
+          # publishing has no credentials until publish time, so the checks can't run.
+          if [ -z "$NODE_AUTH_TOKEN" ]; then args+=(--npm.skipChecks); fi
+          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          pnpm exec release-it "${args[@]}"
