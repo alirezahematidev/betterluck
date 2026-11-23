@@ -1,4 +1,4 @@
-import type { IndicatorShape, LabelDirection } from "react-physics-wheel";
+import type { IndicatorShape, LabelDirection } from "betterluck";
 import { useI18n } from "../i18n";
 import { applyTheme, THEMES } from "../model";
 import type { DemoConfig, FontChoice, Side, ThemeName } from "../model";

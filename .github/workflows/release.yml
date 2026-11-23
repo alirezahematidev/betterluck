@@ -36,7 +36,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: Release
-        working-directory: packages/react-physics-wheel
+        working-directory: packages/betterluck
         run: pnpm exec release-it ${{ inputs.increment }} --ci --npm.skipChecks --npm.publishArgs=--provenance
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,21 +1,21 @@
-# react-physics-wheel
+# betterluck
 
 A physics-driven, fully themable prize wheel ("wheel of fortune") for React, with first-class **RTL and Persian** support.
 
 **[Live demo and playground →](https://alirezahematidev.github.io/fortune-wheel/)**
 
 - **Real physics.** The wheel spins up under torque, then coasts against axle friction and air drag. A spring-loaded flapper is knocked around by the rim's pegs and ticks as each one passes. You can also grab the wheel and flick it.
-- **Fair, or decided by you.** Results are weighted by `frequency` using a CSPRNG, or forced with `spin({ index })` (for example, when your server picks the reward). Either way, the motion is solved so the wheel stops on the result. Nothing snaps into place at the end.
+- **Fair, or decided by you.** Results are weighted by `frequency` using a CSPRNG, or forced with `spin({ index })` (for example, when your server picks the result). Either way, the motion is solved so the wheel stops on the result. Nothing snaps into place at the end.
 - **Labels never overlap or overflow.** Each slice shows `[image] title` along its radius, with the image toward the hub. Labels share one font size, long titles truncate per grapheme, and nothing renders below a readable pixel size. They adapt to the wheel's real rendered diameter.
 - **Persian and RTL support.** Text direction is detected per label. Text shapes and reorders correctly, with ZWNJ-aware truncation and fonts measured from your own CSS.
-- **Themable.** Props for the frame, pegs, indicator (three shapes or your own SVG), hub and labels, plus `className`/`style`, per-part `classNames`/`styles` and `--rpw-*` CSS variables.
-- **Light and SSR-safe.** No dependencies, about 19 kB gzipped. Styles ship inside the component, and the bundle is marked `"use client"`.
+- **Themable.** Props for the frame, pegs, indicator (three shapes or your own SVG), hub and labels, plus `className`/`style`, per-part `classNames`/`styles` and `--bl-*` CSS variables.
+- **Light and SSR-safe.** No dependencies, about 20 kB gzipped. Styles ship inside the component, and the bundle is marked `"use client"`.
 
 ## Install
 
 ```sh
-pnpm add react-physics-wheel
-# or: npm i react-physics-wheel / yarn add react-physics-wheel
+pnpm add betterluck
+# or: npm i betterluck / yarn add betterluck
 ```
 
 You need React 18.2 or newer. The package is ESM-only.
@@ -24,12 +24,12 @@ You need React 18.2 or newer. The package is ESM-only.
 
 ```tsx
 import { useRef } from "react";
-import { FortuneWheel, type FortuneWheelHandle, type Segment } from "react-physics-wheel";
+import { FortuneWheel, type FortuneWheelHandle, type Segment } from "betterluck";
 
 const segments: Segment[] = [
-  { title: "100 Coins", reward: "100 coins", frequency: 20, color: "#ef476f", image: "/coin.svg" },
-  { title: "Try Again", reward: "", frequency: 60, color: "#06d6a0" },
-  { title: "Jackpot", reward: "1,000 coins", frequency: 1, color: "#7b2cbf", image: "/crown.svg" },
+  { id: "coins", title: "100 Coins", frequency: 20, color: "#ef476f", image: "/coin.svg" },
+  { id: "none", title: "Try Again", frequency: 60, color: "#06d6a0" },
+  { id: "jackpot", title: "Jackpot", frequency: 1, color: "#7b2cbf", image: "/crown.svg" },
 ];
 
 export function Prize() {
@@ -40,7 +40,7 @@ export function Prize() {
         ref={wheel}
         segments={segments}
         size={420}
-        onSpinEnd={({ segment }) => alert(`You won: ${segment.reward}`)}
+        onSpinEnd={({ segment }) => alert(`You landed on ${segment.title}`)}
       />
       <button onClick={() => wheel.current?.spin()}>Spin</button>
     </>
@@ -52,15 +52,14 @@ Players can spin by clicking the hub, by flicking the wheel, or through your own
 
 ## Segments
 
-| Field       | Type                | Notes                                                                             |
-| ----------- | ------------------- | --------------------------------------------------------------------------------- |
-| `title`     | `string`            | Drawn on the slice. It shrinks to fit, then truncates with `…`.                   |
-| `reward`    | `string`            | Returned in results; not drawn.                                                   |
-| `frequency` | `number`            | Relative weight. `0` never wins (and gets no slice with `sizing="proportional"`). |
-| `color`     | `string`            | Slice fill, any CSS color. Hex colors also choose a readable label color.         |
-| `textColor` | `string?`           | Label color for this slice.                                                       |
-| `image`     | `string?`           | URL or data URL, drawn beside the title, toward the hub.                          |
-| `id`        | `string \| number?` | Stable React key.                                                                 |
+| Field       | Type                | Notes                                                                                          |
+| ----------- | ------------------- | ---------------------------------------------------------------------------------------------- |
+| `title`     | `string`            | Drawn on the slice. It shrinks to fit, then truncates with `…`.                                |
+| `frequency` | `number`            | Relative weight. `0` never wins (and gets no slice with `sizing="proportional"`).              |
+| `color`     | `string`            | Slice fill, any CSS color. Hex, `rgb()` and `hsl()` colors also choose a readable label color. |
+| `textColor` | `string?`           | Label color for this slice.                                                                    |
+| `image`     | `string?`           | URL or data URL, drawn beside the title, toward the hub.                                       |
+| `id`        | `string \| number?` | Your own identifier, returned in results. Not used by the wheel.                               |
 
 ## Props
 
@@ -81,13 +80,15 @@ Players can spin by clicking the hub, by flicking the wheel, or through your own
 | `className`, `style`   |               | Applied to the root. Use them for the font, CSS variables and so on.                                           |
 | `classNames`, `styles` |               | Per part: `root`, `disc`, `slice`, `label`, `image`, `frame`, `peg`, `winner`, `hub`, `hubLabel`, `indicator`. |
 | `aria-label`           |               | Accessible name of the wheel.                                                                                  |
-| `announce`             | title, reward | `(result) => string` read to screen readers when a spin ends, or `false` for none.                             |
+| `announce`             | title         | `(result) => string` read to screen readers when a spin ends, or `false` for none.                             |
 | `nonce`                |               | Nonce for the built-in `<style>` tag under a strict CSP.                                                       |
 | `onSpinStart`          |               | `(result) => void`. Fires at launch with the segment it **will** land on.                                      |
 | `onSpinEnd`            |               | `(result) => void`. Fires when the wheel comes to rest.                                                        |
 | `onTick`               |               | Fires as each peg passes the indicator (haptics, custom sounds).                                               |
 
 **Ref:** `spin(options?)` starts a spin. It returns `false` if the wheel is busy, disabled, or nothing can win. Pass `spin({ index })` to choose the landing segment. `isSpinning()` reports whether a spin is in progress.
+
+Changes to `segments`, `sizing` or `indicator.position` during a spin take effect once it settles, so the wheel always stops on the slice it reported.
 
 ### Sizing and units
 
@@ -162,8 +163,8 @@ Labels in Persian (and other right-to-left scripts) just work. Each label's base
 ```tsx
 <FortuneWheel
   segments={[
-    { title: "۱۰۰ سکه", reward: "۱۰۰ سکه", frequency: 3, color: "#ef476f" },
-    { title: "جایزه‌ی بزرگ", reward: "۱۰۰۰ سکه", frequency: 1, color: "#7b2cbf" },
+    { title: "۱۰۰ سکه", frequency: 3, color: "#ef476f" },
+    { title: "جایزه‌ی بزرگ", frequency: 1, color: "#7b2cbf" },
   ]}
   hub={{ label: "بچرخان", ariaLabel: "چرخاندن گردونه" }}
   announce={({ segment }) => `نتیجه: ${segment.title}`}
@@ -180,33 +181,35 @@ Default styles are wrapped in `:where()`, so they have zero specificity. Any cla
 ```css
 .my-wheel {
   font-family: "Nunito", sans-serif;
-  --rpw-label-weight: 800;
-  --rpw-label-color: #fff;
-  --rpw-label-halo: transparent;
-  --rpw-frame-color: #6b4a12;
-  --rpw-peg-color: #ffe08a;
-  --rpw-indicator-color: #f5b700;
-  --rpw-shadow: none;
+  --bl-label-weight: 800;
+  --bl-label-color: #fff;
+  --bl-label-halo: transparent;
+  --bl-frame-color: #6b4a12;
+  --bl-peg-color: #ffe08a;
+  --bl-indicator-color: #f5b700;
+  --bl-shadow: none;
 }
 ```
 
-| Variable                                                  | Controls                                    |
-| --------------------------------------------------------- | ------------------------------------------- |
-| `--rpw-font`                                              | Label and hub font family                   |
-| `--rpw-label-color`                                       | Every label (default: automatic contrast)   |
-| `--rpw-label-light` / `--rpw-label-dark`                  | Automatic label colors (`#fff` / `#1c1733`) |
-| `--rpw-label-weight`                                      | Label weight (`700`)                        |
-| `--rpw-label-halo`                                        | Outline around labels                       |
-| `--rpw-frame-color`                                       | Rim                                         |
-| `--rpw-peg-color`                                         | Pegs                                        |
-| `--rpw-divider-color` / `--rpw-divider-width`             | Lines between slices                        |
-| `--rpw-hub-color` / `--rpw-hub-accent` / `--rpw-hub-text` | Hub                                         |
-| `--rpw-indicator-color` / `--rpw-indicator-stroke`        | Indicator                                   |
-| `--rpw-winner-color`                                      | Highlight on the winning slice              |
-| `--rpw-shadow`                                            | Drop shadow under the wheel                 |
-| `--rpw-focus`                                             | Hub focus ring                              |
+| Variable                                               | Controls                                    |
+| ------------------------------------------------------ | ------------------------------------------- |
+| `--bl-font`                                            | Label and hub font family                   |
+| `--bl-label-color`                                     | Every label (default: automatic contrast)   |
+| `--bl-label-light` / `--bl-label-dark`                 | Automatic label colors (`#fff` / `#1c1733`) |
+| `--bl-label-weight`                                    | Label weight (`700`)                        |
+| `--bl-label-halo`                                      | Outline around labels                       |
+| `--bl-frame-color`                                     | Rim                                         |
+| `--bl-peg-color`                                       | Pegs                                        |
+| `--bl-divider-color` / `--bl-divider-width`            | Lines between slices                        |
+| `--bl-hub-color` / `--bl-hub-accent` / `--bl-hub-text` | Hub                                         |
+| `--bl-indicator-color` / `--bl-indicator-stroke`       | Indicator                                   |
+| `--bl-winner-color`                                    | Highlight on the winning slice              |
+| `--bl-shadow`                                          | Drop shadow under the wheel                 |
+| `--bl-focus`                                           | Hub focus ring                              |
 
 The `frame`, `indicator`, `hub` and `labels` color props set these same variables.
+
+Label and hub font **sizes** are fitted to the wheel and set inline, so no stylesheet can make them overflow. Everything else about the text (family, weight, letter spacing, color) is yours to style, and the wheel measures text with whatever you choose.
 
 ## Physics
 
@@ -226,7 +229,7 @@ The `frame`, `indicator`, `hub` and `labels` color props set these same variable
 | `maxLaunchSpeed` | 22      | rad/s  |
 | `flickThreshold` | 4       | rad/s  |
 
-`estimateSpin(physics)` returns the average duration and number of turns, which is handy when tuning.
+`flickThreshold` can't go below 2 rad/s, since a slower flick can't carry the wheel anywhere convincing. `estimateSpin(physics)` returns the average duration and number of turns, which is handy when tuning.
 
 ## Server rendering
 

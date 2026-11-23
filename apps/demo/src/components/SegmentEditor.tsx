@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { probabilities } from "react-physics-wheel";
+import { probabilities } from "betterluck";
 import { useI18n } from "../i18n";
 import { newId, sampleSegments, THEMES } from "../model";
 import type { EditableSegment } from "../model";
@@ -41,7 +41,6 @@ export function SegmentEditor({ segments, palette, onChange }: SegmentEditorProp
       {
         id: newId(),
         title: `${t.newPrize} ${num(segments.length + 1)}`,
-        reward: "",
         frequency: 10,
         color: palette[segments.length % palette.length] ?? THEMES.twilight.palette[0],
       },
@@ -118,16 +117,6 @@ export function SegmentEditor({ segments, palette, onChange }: SegmentEditorProp
               </div>
 
               <div className="segment-fields">
-                <div className="field grow">
-                  <label htmlFor={`reward-${segment.id}`}>{t.reward}</label>
-                  <input
-                    id={`reward-${segment.id}`}
-                    dir="auto"
-                    placeholder={t.rewardPlaceholder}
-                    value={segment.reward}
-                    onChange={(e) => update(segment.id, { reward: e.target.value })}
-                  />
-                </div>
                 <div className="field narrow">
                   <label htmlFor={`freq-${segment.id}`}>{t.frequency}</label>
                   <NumberField
@@ -140,29 +129,33 @@ export function SegmentEditor({ segments, palette, onChange }: SegmentEditorProp
                   <span>{t.chance}</span>
                   <strong>{percent(odds[index])}</strong>
                 </div>
-              </div>
-
-              <div className="text-color-row">
-                <span className="field-label">{t.textColor}</span>
-                <label className="mini-toggle">
-                  <input
-                    type="checkbox"
-                    checked={!segment.textColor}
-                    onChange={(e) =>
-                      update(segment.id, { textColor: e.target.checked ? undefined : "#ffffff" })
-                    }
-                  />
-                  {t.auto}
-                </label>
-                {segment.textColor && (
-                  <input
-                    type="color"
-                    className="color-input small"
-                    aria-label={`${n}: ${t.textColor}`}
-                    value={isHex(segment.textColor) ? segment.textColor : "#ffffff"}
-                    onChange={(e) => update(segment.id, { textColor: e.target.value })}
-                  />
-                )}
+                <div className="field text-color">
+                  <span className="field-label">{t.textColor}</span>
+                  <div className="text-color-controls">
+                    <label className="mini-toggle">
+                      <input
+                        type="checkbox"
+                        aria-label={`${n}: ${t.textColor}, ${t.auto}`}
+                        checked={!segment.textColor}
+                        onChange={(e) =>
+                          update(segment.id, {
+                            textColor: e.target.checked ? undefined : "#ffffff",
+                          })
+                        }
+                      />
+                      {t.auto}
+                    </label>
+                    {segment.textColor && (
+                      <input
+                        type="color"
+                        className="color-input small"
+                        aria-label={`${n}: ${t.textColor}`}
+                        value={isHex(segment.textColor) ? segment.textColor : "#ffffff"}
+                        onChange={(e) => update(segment.id, { textColor: e.target.value })}
+                      />
+                    )}
+                  </div>
+                </div>
               </div>
 
               <ImageField

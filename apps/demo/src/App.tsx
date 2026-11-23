@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties } from "react";
-import { FortuneWheel, totalWeight } from "react-physics-wheel";
-import type { FortuneWheelHandle, LabelOptions, Segment } from "react-physics-wheel";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties, KeyboardEvent } from "react";
+import { FortuneWheel, probabilities, totalWeight } from "betterluck";
+import type { FortuneWheelHandle, LabelOptions, Segment } from "betterluck";
 import { BehaviorPanel } from "./components/BehaviorPanel";
 import { CodePanel } from "./components/CodePanel";
 import { Icon } from "./components/Icon";
@@ -17,6 +17,7 @@ const REPO_URL = "https://github.com/alirezahematidev/fortune-wheel";
 interface HistoryEntry {
   key: number;
   segment: Segment;
+  chance: number;
 }
 
 type Tab = "segments" | "style" | "behavior" | "code";
@@ -37,10 +38,11 @@ export default function App() {
   const canSpin = segments.length > 0 && totalWeight(segments) > 0;
   const latest = history[0];
 
-  useEffect(() => {
+  // Before paint, so a Persian page never flashes left-to-right.
+  useLayoutEffect(() => {
     document.documentElement.lang = config.locale;
     document.documentElement.dir = i18n.dir;
-    document.title = `react-physics-wheel: ${t.title}`;
+    document.title = `betterluck: ${t.title}`;
   }, [config.locale, i18n.dir, t.title]);
 
   const commit = (next: DemoConfig) => {
@@ -62,11 +64,32 @@ export default function App() {
     () =>
       ({
         fontFamily: FONT_STACKS[labels.font],
-        "--rpw-label-weight": labels.weight,
+        "--bl-label-weight": labels.weight,
       }) as CSSProperties,
     [labels.font, labels.weight],
   );
   const palette = config.theme ? THEMES[config.theme].palette : THEMES.twilight.palette;
+
+  /** Arrow keys move between tabs (mirrored in RTL), Home/End jump to the ends. */
+  const onTabKey = (e: KeyboardEvent<HTMLButtonElement>) => {
+    const forward = i18n.dir === "rtl" ? "ArrowLeft" : "ArrowRight";
+    const back = i18n.dir === "rtl" ? "ArrowRight" : "ArrowLeft";
+    const at = TABS.indexOf(tab);
+    const next =
+      e.key === forward
+        ? TABS[(at + 1) % TABS.length]
+        : e.key === back
+          ? TABS[(at - 1 + TABS.length) % TABS.length]
+          : e.key === "Home"
+            ? TABS[0]
+            : e.key === "End"
+              ? TABS.at(-1)
+              : undefined;
+    if (!next) return;
+    e.preventDefault();
+    setTab(next);
+    document.getElementById(`tab-${next}`)?.focus();
+  };
 
   return (
     <I18nContext.Provider value={i18n}>
@@ -115,9 +138,12 @@ export default function App() {
                 onSpinEnd={(result) => {
                   setSpinning(false);
                   spinCount.current += 1;
-                  setHistory((h) =>
-                    [{ key: spinCount.current, segment: result.segment }, ...h].slice(0, 12),
-                  );
+                  const entry: HistoryEntry = {
+                    key: spinCount.current,
+                    segment: result.segment,
+                    chance: probabilities(segments)[result.index] ?? 0,
+                  };
+                  setHistory((h) => [entry, ...h].slice(0, 12));
                 }}
               />
             </div>
@@ -149,11 +175,9 @@ export default function App() {
                     <p className="result-title" dir="auto">
                       {latest.segment.title || t.untitled}
                     </p>
-                    {latest.segment.reward && (
-                      <p className="result-reward" dir="auto">
-                        {latest.segment.reward}
-                      </p>
-                    )}
+                    <p className="result-chance">
+                      {t.chance}: {i18n.percent(latest.chance)}
+                    </p>
                   </div>
                 </div>
               ) : (
@@ -194,7 +218,9 @@ export default function App() {
                   aria-selected={tab === id}
                   aria-controls={`panel-${id}`}
                   className="tab"
+                  tabIndex={tab === id ? 0 : -1}
                   onClick={() => setTab(id)}
+                  onKeyDown={onTabKey}
                 >
                   {
                     {
@@ -246,7 +272,7 @@ export default function App() {
 
         <footer className="app-footer">
           <span>{t.savedLocally}</span>
-          <span dir="ltr">react-physics-wheel · MIT</span>
+          <span dir="ltr">betterluck · MIT</span>
         </footer>
       </div>
     </I18nContext.Provider>

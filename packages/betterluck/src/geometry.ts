@@ -340,12 +340,40 @@ export function hubFontSize(text: string, radius: number, measure: MeasureText):
  * Color
  * ---------------------------------------------------------------------------------------------- */
 
-function parseHex(color: string): [number, number, number] | null {
-  const m = /^#?([\da-f]{3}|[\da-f]{6})$/i.exec(color.trim());
-  if (!m) return null;
-  const hex = m[1].length === 3 ? [...m[1]].map((c) => c + c).join("") : m[1];
-  const n = Number.parseInt(hex, 16);
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+/** A color channel: a plain number, or a percentage of `scale`. */
+function colorChannel(v: string, scale: number): number {
+  return v.endsWith("%") ? (Number.parseFloat(v) / 100) * scale : Number.parseFloat(v);
+}
+
+/** Parses hex (#rgb, #rgba, #rrggbb, #rrggbbaa), rgb()/rgba() and hsl()/hsla() into 0–255 RGB. */
+export function parseColor(color: string): [number, number, number] | null {
+  const c = color.trim().toLowerCase();
+  const hex = /^#([\da-f]{3,4}|[\da-f]{6}|[\da-f]{8})$/.exec(c);
+  if (hex) {
+    const h = hex[1].length <= 4 ? [...hex[1]].map((d) => d + d).join("") : hex[1];
+    return [0, 2, 4].map((i) => Number.parseInt(h.slice(i, i + 2), 16)) as [number, number, number];
+  }
+  const fn = /^(rgba?|hsla?)\((.*)\)$/.exec(c);
+  if (!fn) return null;
+  const parts = fn[2]
+    .split(/[\s,/]+/)
+    .filter(Boolean)
+    .slice(0, 3);
+  if (parts.length < 3) return null;
+  if (fn[1].startsWith("rgb")) {
+    const rgb = parts.map((v) => colorChannel(v, 255));
+    return rgb.every(Number.isFinite) ? (rgb as [number, number, number]) : null;
+  }
+  const hue = Number.parseFloat(parts[0]);
+  const sat = colorChannel(parts[1], 1);
+  const light = colorChannel(parts[2], 1);
+  if (![hue, sat, light].every(Number.isFinite)) return null;
+  const a = sat * Math.min(light, 1 - light);
+  const f = (n: number) => {
+    const k = (n + hue / 30) % 12;
+    return 255 * (light - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)));
+  };
+  return [f(0), f(8), f(4)];
 }
 
 function linearChannel(c: number): number {
@@ -359,7 +387,7 @@ function luminance([r, g, b]: [number, number, number]): number {
 
 /** Dark or light text, whichever contrasts more with `background`. */
 export function contrastText(background: string): "dark" | "light" {
-  const rgb = parseHex(background);
+  const rgb = parseColor(background);
   if (!rgb) return "light";
   const L = luminance(rgb);
   // Contrast against white (L=1) vs. near-black (L≈0.012).

@@ -4,7 +4,7 @@ import { defineConfig } from "vite";
 
 // The demo builds against the library's source, so edits hot-reload without a library build.
 const librarySource = fileURLToPath(
-  new URL("../../packages/react-physics-wheel/src/index.ts", import.meta.url),
+  new URL("../../packages/betterluck/src/index.ts", import.meta.url),
 );
 
 export default defineConfig({
@@ -12,6 +12,6 @@ export default defineConfig({
   base: process.env.BASE_PATH ?? "/",
   plugins: [react()],
   resolve: {
-    alias: { "react-physics-wheel": librarySource },
+    alias: { betterluck: librarySource },
   },
 });

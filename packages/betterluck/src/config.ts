@@ -73,7 +73,8 @@ export function resolvePhysics(physics?: Partial<WheelPhysics>): WheelPhysics {
     drag: Math.max(0, finiteOr(physics?.drag, d.drag)),
     minLaunchSpeed: Math.min(a, b),
     maxLaunchSpeed: Math.max(a, b),
-    flickThreshold: Math.max(0.5, finiteOr(physics?.flickThreshold, d.flickThreshold)),
+    // Below ~2 rad/s a flick can't carry the wheel anywhere convincing.
+    flickThreshold: Math.max(2, finiteOr(physics?.flickThreshold, d.flickThreshold)),
   };
 }
 

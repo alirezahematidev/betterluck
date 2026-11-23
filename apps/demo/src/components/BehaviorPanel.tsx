@@ -1,5 +1,5 @@
-import { DEFAULT_PHYSICS, estimateSpin } from "react-physics-wheel";
-import type { SegmentSizing, SpinDirection, WheelPhysics } from "react-physics-wheel";
+import { DEFAULT_PHYSICS, estimateSpin } from "betterluck";
+import type { SegmentSizing, SpinDirection, WheelPhysics } from "betterluck";
 import { useI18n } from "../i18n";
 import type { DemoConfig } from "../model";
 import { Section, Segmented, Slider, Toggle } from "./controls";

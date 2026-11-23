@@ -3,6 +3,7 @@ import {
   arcAtPointer,
   buildArcs,
   contrastText,
+  parseColor,
   landingAngle,
   hubFontSize,
   layoutLabel,
@@ -18,7 +19,6 @@ import type { Segment } from "./types";
 
 const seg = (title: string, frequency: number): Segment => ({
   title,
-  reward: "",
   frequency,
   color: "#123456",
 });
@@ -246,11 +246,26 @@ describe("hub label", () => {
   });
 });
 
-describe("contrast", () => {
+describe("color", () => {
+  it("parses hex, rgb() and hsl()", () => {
+    expect(parseColor("#fff")).toEqual([255, 255, 255]);
+    expect(parseColor("#ffd16680")).toEqual([255, 209, 102]);
+    expect(parseColor("#f008")).toEqual([255, 0, 0]);
+    expect(parseColor("rgb(10, 20, 30)")).toEqual([10, 20, 30]);
+    expect(parseColor("rgb(10 20 30 / 50%)")).toEqual([10, 20, 30]);
+    expect(parseColor("rgba(100%, 0%, 0%, 0.5)")).toEqual([255, 0, 0]);
+    expect(parseColor("hsl(0, 100%, 50%)")?.map(Math.round)).toEqual([255, 0, 0]);
+    expect(parseColor("hsl(120deg 100% 25%)")?.map(Math.round)).toEqual([0, 128, 0]);
+    expect(parseColor("rebeccapurple")).toBeNull();
+    expect(parseColor("#12")).toBeNull();
+  });
+
   it("chooses readable text", () => {
     expect(contrastText("#ffd166")).toBe("dark");
     expect(contrastText("#7b2cbf")).toBe("light");
     expect(contrastText("#fff")).toBe("dark");
+    expect(contrastText("rgb(250 250 210)")).toBe("dark");
+    expect(contrastText("hsl(220, 60%, 20%)")).toBe("light");
     expect(contrastText("rebeccapurple")).toBe("light");
   });
 });

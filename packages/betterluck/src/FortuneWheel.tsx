@@ -35,7 +35,7 @@ import {
 } from "./geometry";
 import type { Arc, LabelBounds } from "./geometry";
 import { lerp, secureRandom, TAU, toDegrees, wrapPi } from "./math";
-import { launchDistance, planCoast, planLaunch } from "./physics";
+import { coastDistance, launchDistance, planCoast, planLaunch } from "./physics";
 import type { SpinPlan } from "./physics";
 import { playTick, unlockAudio } from "./sound";
 import { WHEEL_CSS } from "./styles";
@@ -46,6 +46,7 @@ import type {
   FrameOptions,
   HubOptions,
   IndicatorOptions,
+  IndicatorPosition,
   IndicatorShape,
   LabelOptions,
   Segment,
@@ -132,12 +133,12 @@ const DARK_HALO = "rgb(0 0 0 / 0.28)";
 /** Auto label color + matching outline for a slice (or for a forced text color). */
 function labelVars(sliceColor: string, forced: string | undefined): CSSVars {
   if (forced) {
-    return { "--rpw-label-auto-halo": contrastText(forced) === "light" ? LIGHT_HALO : DARK_HALO };
+    return { "--bl-label-auto-halo": contrastText(forced) === "light" ? LIGHT_HALO : DARK_HALO };
   }
   const light = contrastText(sliceColor) === "light";
   return {
-    "--rpw-label-auto": light ? "var(--rpw-label-light, #fff)" : "var(--rpw-label-dark, #1c1733)",
-    "--rpw-label-auto-halo": light ? DARK_HALO : LIGHT_HALO,
+    "--bl-label-auto": light ? "var(--bl-label-light, #fff)" : "var(--bl-label-dark, #1c1733)",
+    "--bl-label-auto-halo": light ? DARK_HALO : LIGHT_HALO,
   };
 }
 
@@ -145,7 +146,7 @@ function indicatorPaths(shape: IndicatorShape, s: number, tip: number): ReactEle
   if (shape === "triangle") {
     return (
       <path
-        className="rpw-indicator-body"
+        className="bl-indicator-body"
         d={`M${-17 * s} ${-11 * s}Q0 ${-21 * s} ${17 * s} ${-11 * s}L0 ${tip}Z`}
       />
     );
@@ -153,8 +154,8 @@ function indicatorPaths(shape: IndicatorShape, s: number, tip: number): ReactEle
   if (shape === "needle") {
     return (
       <>
-        <path className="rpw-indicator-body" d={`M${-3.6 * s} 0L0 ${tip}L${3.6 * s} 0Z`} />
-        <circle className="rpw-indicator-body" r={9 * s} />
+        <path className="bl-indicator-body" d={`M${-3.6 * s} 0L0 ${tip}L${3.6 * s} 0Z`} />
+        <circle className="bl-indicator-body" r={9 * s} />
       </>
     );
   }
@@ -164,10 +165,17 @@ function indicatorPaths(shape: IndicatorShape, s: number, tip: number): ReactEle
   const y = head * Math.cos(gamma);
   return (
     <path
-      className="rpw-indicator-body"
+      className="bl-indicator-body"
       d={`M0 ${tip}L${x} ${y}A${head} ${head} 0 1 0 ${-x} ${y}Z`}
     />
   );
+}
+
+/** The layout a running spin was planned on. */
+interface Frozen {
+  segments: readonly Segment[];
+  sizing: SegmentSizing;
+  position: IndicatorPosition | undefined;
 }
 
 interface FontPair {
@@ -202,9 +210,24 @@ function FortuneWheelRender(
     onSpinEnd,
     onTick,
   } = props;
+  const ariaLabel = props["aria-label"];
 
   const uid = useId().replace(/[^\w-]/g, "");
-  const arcs = useMemo(() => buildArcs(segments, sizing), [segments, sizing]);
+
+  // While a spin runs, keep showing the layout it was planned on: if props change mid-spin the
+  // wheel still stops on the slice it reported. The new props apply once it settles.
+  const [frozen, setFrozen] = useState<Frozen | null>(null);
+  const shownSegments = frozen?.segments ?? segments;
+  const shownSizing = frozen?.sizing ?? sizing;
+  const shownPosition = frozen ? frozen.position : indicator?.position;
+
+  const arcs = useMemo(() => buildArcs(shownSegments, shownSizing), [shownSegments, shownSizing]);
+  // Content signature, so a fresh-but-identical `segments` array (e.g. an inline literal) keeps
+  // the winner highlight.
+  const arcsKey = useMemo(
+    () => arcs.map((a) => `${a.index}:${a.start.toFixed(9)}`).join(","),
+    [arcs],
+  );
   const pegAngles = useMemo(() => arcs.map((a) => a.start), [arcs]);
   const geometry: WheelGeometry = useMemo(
     () =>
@@ -214,7 +237,7 @@ function FortuneWheelRender(
           pegs: frame?.pegs,
           pegSize: frame?.pegSize,
           hubRadius: hub?.radius,
-          indicatorPosition: indicator?.position,
+          indicatorPosition: shownPosition,
           indicatorSize: indicator?.size,
           indicatorShape: indicator?.shape,
           customIndicator: Boolean(indicator?.render),
@@ -226,7 +249,7 @@ function FortuneWheelRender(
       frame?.pegs,
       frame?.pegSize,
       hub?.radius,
-      indicator?.position,
+      shownPosition,
       indicator?.size,
       indicator?.shape,
       indicator?.render,
@@ -235,7 +258,7 @@ function FortuneWheelRender(
   );
   const label = defined<LabelOptions>({ ...DEFAULT_LABELS, color: "" }, labels);
   const resolvedPhysics = useMemo(() => resolvePhysics(physics), [physics]);
-  const canSpin = arcs.length > 0 && totalWeight(segments) > 0 && !disabled;
+  const canSpin = arcs.length > 0 && totalWeight(shownSegments) > 0 && !disabled;
   const collide = geometry.pegs && indicator?.flap !== false;
 
   /* ---------------- Layout box: the wheel plus wherever the indicator sticks out ---------------- */
@@ -350,15 +373,15 @@ function FortuneWheelRender(
     () =>
       layoutLabels(
         arcs.map((arc) => ({
-          title: segments[arc.index].title.trim(),
-          hasImage: Boolean(segments[arc.index].image),
+          title: shownSegments[arc.index].title.trim(),
+          hasImage: Boolean(shownSegments[arc.index].image),
           span: arc.span,
         })),
         bounds,
         measureLabel,
         label.uniform,
       ),
-    [arcs, segments, bounds, measureLabel, label.uniform],
+    [arcs, shownSegments, bounds, measureLabel, label.uniform],
   );
   const inheritedDirection = fonts?.label.direction ?? "ltr";
   const directionOf = (title: string): "ltr" | "rtl" =>
@@ -375,8 +398,8 @@ function FortuneWheelRender(
 
   const [spinning, setSpinning] = useState(false);
   // Remember which layout the result belongs to, so edits after a spin drop the stale highlight.
-  const [landed, setLanded] = useState<{ result: SpinResult; arcs: readonly Arc[] } | null>(null);
-  const winner = landed?.arcs === arcs ? landed.result : null;
+  const [landed, setLanded] = useState<{ result: SpinResult; arcsKey: string } | null>(null);
+  const winner = landed?.arcsKey === arcsKey ? landed.result : null;
 
   const overlayRef = useRef<SVGSVGElement>(null);
   const rotorRef = useRef<HTMLDivElement>(null);
@@ -385,8 +408,11 @@ function FortuneWheelRender(
   const drag = useRef<{ id: number; last: number } | null>(null);
   const positioned = useRef(false);
   const latest = useRef({
-    segments,
+    segments: shownSegments,
+    sizing: shownSizing,
+    position: shownPosition,
     arcs,
+    arcsKey,
     physics: resolvedPhysics,
     pointer: geometry.indicatorAngle,
     pivot: geometry.flapper.pivotDistance,
@@ -418,8 +444,9 @@ function FortuneWheelRender(
         const result = pending.current;
         pending.current = null;
         setSpinning(false);
+        setFrozen(null);
         if (result) {
-          setLanded({ result, arcs: latest.current.arcs });
+          setLanded({ result, arcsKey: latest.current.arcsKey });
           latest.current.onSpinEnd?.(result);
         }
       },
@@ -429,8 +456,11 @@ function FortuneWheelRender(
 
   useIsoLayoutEffect(() => {
     latest.current = {
-      segments,
+      segments: shownSegments,
+      sizing: shownSizing,
+      position: shownPosition,
       arcs,
+      arcsKey,
       physics: resolvedPhysics,
       pointer: geometry.indicatorAngle,
       pivot: geometry.flapper.pivotDistance,
@@ -454,10 +484,12 @@ function FortuneWheelRender(
 
   const begin = useCallback(
     (plan: SpinPlan, index: number) => {
-      const result: SpinResult = { index, segment: latest.current.segments[index] };
+      const { segments: segs, sizing: sz, position } = latest.current;
+      const result: SpinResult = { index, segment: segs[index] };
       pending.current = result;
       setLanded(null);
       setSpinning(true);
+      setFrozen({ segments: segs, sizing: sz, position });
       engine.spin(plan);
       latest.current.onSpinStart?.(result);
     },
@@ -501,13 +533,16 @@ function FortuneWheelRender(
       const target = chooseTarget();
       if (!target) return;
       const p = latest.current.physics;
+      const speed = Math.min(Math.abs(velocity), p.maxLaunchSpeed * 1.25);
+      const friction = { mu: p.friction, k: p.drag };
       const plan = planCoast({
         startAngle: engine.wheelAngle,
         direction: velocity > 0 ? 1 : -1,
-        launchSpeed: Math.min(Math.abs(velocity), p.maxLaunchSpeed * 1.25),
-        friction: { mu: p.friction, k: p.drag },
+        launchSpeed: speed,
+        friction,
         targetAngle: target.angle,
-        minTravel: Math.PI,
+        // At least half a turn, unless the flick is too weak to get that far naturally.
+        minTravel: Math.min(Math.PI, 0.6 * coastDistance(speed, friction)),
       });
       begin(plan, target.index);
     },
@@ -522,9 +557,9 @@ function FortuneWheelRender(
   const locate = (e: PointerEvent): { angle: number; radius: number } | null => {
     const m = overlayRef.current?.getScreenCTM();
     if (!m) return null;
-    const dx = e.clientX - m.e;
-    const dy = e.clientY - m.f;
-    return { angle: Math.atan2(dx, -dy), radius: Math.hypot(dx, dy) / m.a };
+    // Map the pointer into wheel units (exact even under rotated/scaled ancestors).
+    const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse());
+    return { angle: Math.atan2(p.x, -p.y), radius: Math.hypot(p.x, p.y) };
   };
 
   const flickable = allowFlick && canSpin;
@@ -572,48 +607,48 @@ function FortuneWheelRender(
   };
   const ratio = box.width / (2 * g.radius);
   const width =
-    size === undefined
-      ? undefined
-      : typeof size === "number"
+    typeof size === "number"
+      ? Number.isFinite(size) && size > 0
         ? `${size * ratio}px`
-        : `calc(${size} * ${ratio})`;
+        : undefined
+      : size
+        ? `calc(${size} * ${ratio})`
+        : undefined;
 
   const rootStyle: CSSVars = {
     position: "relative",
     ...(width ? { width, maxWidth: "100%" } : null),
     aspectRatio: `${box.width} / ${box.height}`,
-    "--rpw-frame-color": frame?.color,
-    "--rpw-peg-color": frame?.pegColor,
-    "--rpw-divider-color": frame?.dividerColor,
-    "--rpw-divider-width": frame?.dividerWidth,
-    "--rpw-indicator-color": indicator?.color,
-    "--rpw-hub-color": hub?.color,
-    "--rpw-hub-text": hub?.textColor,
-    "--rpw-label-color": label.color || undefined,
+    "--bl-frame-color": frame?.color,
+    "--bl-peg-color": frame?.pegColor,
+    "--bl-divider-color": frame?.dividerColor,
+    "--bl-divider-width": frame?.dividerWidth,
+    "--bl-indicator-color": indicator?.color,
+    "--bl-hub-color": hub?.color,
+    "--bl-hub-text": hub?.textColor,
+    "--bl-label-color": label.color || undefined,
     ...style,
     ...styles.root,
   };
 
-  const describe =
-    announce === false
-      ? null
-      : (announce ??
-        ((r: SpinResult) =>
-          r.segment.reward ? `${r.segment.title} — ${r.segment.reward}` : r.segment.title));
+  const describe = announce === false ? null : (announce ?? ((r: SpinResult) => r.segment.title));
   const shadingOn = frame?.shading !== false;
 
   return (
     <div
       ref={rootRef}
-      className={cx("rpw", className, classNames.root)}
+      className={cx("bl-wheel", className, classNames.root)}
       style={rootStyle}
+      // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- no native element fits a widget group
+      role="group"
+      aria-label={ariaLabel}
       data-spinning={spinning || undefined}
       data-disabled={disabled || undefined}
     >
       <style nonce={nonce} dangerouslySetInnerHTML={{ __html: WHEEL_CSS }} />
 
       <div
-        className={cx("rpw-disc", classNames.disc)}
+        className={cx("bl-disc", classNames.disc)}
         style={{ ...place(0, 0, disc), overflow: "hidden", pointerEvents: "none", ...styles.disc }}
       >
         <div ref={rotorRef} style={{ width: "100%", height: "100%", willChange: "transform" }}>
@@ -624,17 +659,17 @@ function FortuneWheelRender(
           >
             <defs>
               <radialGradient id={ids.frame}>
-                <stop offset={g.sliceRadius / g.radius} className="rpw-frame-inner" />
+                <stop offset={g.sliceRadius / g.radius} className="bl-frame-inner" />
                 <stop
                   offset={(g.sliceRadius + g.frameWidth * 0.45) / g.radius}
-                  className="rpw-frame-mid"
+                  className="bl-frame-mid"
                 />
-                <stop offset="1" className="rpw-frame-outer" />
+                <stop offset="1" className="bl-frame-outer" />
               </radialGradient>
               <radialGradient id={ids.peg} cx="35%" cy="35%" r="70%">
-                <stop offset="0" className="rpw-peg-light" />
-                <stop offset="0.45" className="rpw-peg-mid" />
-                <stop offset="1" className="rpw-peg-dark" />
+                <stop offset="0" className="bl-peg-light" />
+                <stop offset="0.45" className="bl-peg-mid" />
+                <stop offset="1" className="bl-peg-dark" />
               </radialGradient>
               <radialGradient id={ids.shade}>
                 <stop offset="0.55" stopColor="#000" stopOpacity="0" />
@@ -645,29 +680,25 @@ function FortuneWheelRender(
             {g.frameWidth > 0 && (
               <circle
                 r={g.radius}
-                className={cx("rpw-frame", classNames.frame)}
+                className={cx("bl-frame", classNames.frame)}
                 style={styles.frame}
                 fill={`url(#${ids.frame})`}
               />
             )}
             {arcs.length === 0 ? (
-              <circle r={g.sliceRadius} className="rpw-empty" />
+              <circle r={g.sliceRadius} className="bl-empty" />
             ) : (
               arcs.map((arc) => {
-                const segment = segments[arc.index];
+                const segment = shownSegments[arc.index];
                 const common = {
-                  className: cx("rpw-slice", classNames.slice),
+                  className: cx("bl-slice", classNames.slice),
                   style: styles.slice,
                   fill: segment.color,
                 };
                 return wideSlice(arc) ? (
-                  <circle key={segment.id ?? arc.index} r={g.sliceRadius} {...common} />
+                  <circle key={arc.index} r={g.sliceRadius} {...common} />
                 ) : (
-                  <path
-                    key={segment.id ?? arc.index}
-                    d={slicePath(arc, g.sliceRadius)}
-                    {...common}
-                  />
+                  <path key={arc.index} d={slicePath(arc, g.sliceRadius)} {...common} />
                 );
               })
             )}
@@ -676,26 +707,26 @@ function FortuneWheelRender(
               (wideSlice(winnerArc) ? (
                 <circle
                   r={g.sliceRadius}
-                  className={cx("rpw-winner", classNames.winner)}
+                  className={cx("bl-winner", classNames.winner)}
                   style={styles.winner}
                 />
               ) : (
                 <path
                   d={slicePath(winnerArc, g.sliceRadius)}
-                  className={cx("rpw-winner", classNames.winner)}
+                  className={cx("bl-winner", classNames.winner)}
                   style={styles.winner}
                 />
               ))}
 
             {arcs.map((arc, i) => {
-              const segment = segments[arc.index];
+              const segment = shownSegments[arc.index];
               const layout = layouts[i];
               const forced = segment.textColor || label.color || undefined;
               return (
-                <g key={segment.id ?? arc.index} transform={`rotate(${toDegrees(arc.mid) - 90})`}>
+                <g key={arc.index} transform={`rotate(${toDegrees(arc.mid) - 90})`}>
                   {segment.image && layout.imageSize > 0 && (
                     <image
-                      className={cx("rpw-image", classNames.image)}
+                      className={cx("bl-image", classNames.image)}
                       style={styles.image}
                       href={segment.image}
                       x={layout.imageStart}
@@ -707,16 +738,17 @@ function FortuneWheelRender(
                   )}
                   {layout.text && (
                     <text
-                      className={cx("rpw-label", classNames.label)}
+                      className={cx("bl-label", classNames.label)}
                       style={{
                         ...labelVars(segment.color, forced),
                         ...(segment.textColor ? { fill: segment.textColor } : null),
                         ...styles.label,
+                        // Fitted size: inline so no stylesheet can override it and cause overflow.
+                        fontSize: layout.fontSize,
                       }}
                       x={layout.textStart + layout.textWidth / 2}
                       textAnchor="middle"
                       dominantBaseline="central"
-                      fontSize={layout.fontSize}
                       direction={directionOf(layout.text)}
                       unicodeBidi="embed"
                     >
@@ -727,14 +759,14 @@ function FortuneWheelRender(
               );
             })}
 
-            {g.frameWidth > 0 && <circle r={g.sliceRadius} className="rpw-rim-line" />}
+            {g.frameWidth > 0 && <circle r={g.sliceRadius} className="bl-rim-line" />}
             {g.pegs &&
               pegAngles.map((angle) => {
                 const [x, y] = polar(angle, g.pegDistance);
                 return (
                   <circle
                     key={angle}
-                    className={cx("rpw-peg", classNames.peg)}
+                    className={cx("bl-peg", classNames.peg)}
                     style={styles.peg}
                     cx={x}
                     cy={y}
@@ -747,7 +779,7 @@ function FortuneWheelRender(
             {/* Probe: tells the measurer which font labels really render with. */}
             <text
               ref={labelProbe}
-              className={cx("rpw-label", classNames.label)}
+              className={cx("bl-label", classNames.label)}
               style={{ ...styles.label, fontSize: 100 }}
               x={-9999}
               visibility="hidden"
@@ -760,7 +792,7 @@ function FortuneWheelRender(
 
       <svg
         ref={overlayRef}
-        className="rpw-overlay"
+        className="bl-overlay"
         viewBox={`${box.x} ${box.y} ${box.width} ${box.height}`}
         style={{ position: "absolute", inset: 0, display: "block", width: "100%", height: "100%" }}
         aria-hidden="true"
@@ -774,14 +806,14 @@ function FortuneWheelRender(
       >
         <defs>
           <radialGradient id={ids.hub} cx="40%" cy="35%" r="75%">
-            <stop offset="0" className="rpw-hub-light" />
-            <stop offset="0.55" className="rpw-hub-mid" />
-            <stop offset="1" className="rpw-hub-dark" />
+            <stop offset="0" className="bl-hub-light" />
+            <stop offset="0.55" className="bl-hub-mid" />
+            <stop offset="1" className="bl-hub-dark" />
           </radialGradient>
           <linearGradient id={ids.pointer} x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0" className="rpw-indicator-light" />
-            <stop offset="0.55" className="rpw-indicator-mid" />
-            <stop offset="1" className="rpw-indicator-dark" />
+            <stop offset="0" className="bl-indicator-light" />
+            <stop offset="0.55" className="bl-indicator-mid" />
+            <stop offset="1" className="bl-indicator-dark" />
           </linearGradient>
           <filter id={ids.shadow} x="-50%" y="-50%" width="200%" height="200%">
             <feDropShadow dx="0" dy="3" stdDeviation="3" floodColor="#000" floodOpacity="0.35" />
@@ -789,14 +821,13 @@ function FortuneWheelRender(
         </defs>
 
         {g.hubRadius > 0 && (
-          <g className={cx("rpw-hub", classNames.hub)} style={styles.hub}>
+          <g className={cx("bl-hub", classNames.hub)} style={styles.hub}>
             <circle r={g.hubRadius} fill={`url(#${ids.hub})`} filter={`url(#${ids.shadow})`} />
-            <circle r={Math.max(1, g.hubRadius - 6)} className="rpw-hub-ring" />
+            <circle r={Math.max(1, g.hubRadius - 6)} className="bl-hub-ring" />
             {hubText && hubFont > 0 && (
               <text
-                className={cx("rpw-hub-label", classNames.hubLabel)}
-                style={styles.hubLabel}
-                fontSize={hubFont}
+                className={cx("bl-hub-label", classNames.hubLabel)}
+                style={{ ...styles.hubLabel, fontSize: hubFont }}
                 textAnchor="middle"
                 dominantBaseline="central"
                 direction={detectDirection(hubText) ?? inheritedDirection}
@@ -809,7 +840,7 @@ function FortuneWheelRender(
         )}
         <text
           ref={hubProbe}
-          className={cx("rpw-hub-label", classNames.hubLabel)}
+          className={cx("bl-hub-label", classNames.hubLabel)}
           style={{ ...styles.hubLabel, fontSize: 100 }}
           x={-9999}
           visibility="hidden"
@@ -818,7 +849,7 @@ function FortuneWheelRender(
         </text>
 
         <g
-          className={cx("rpw-indicator", classNames.indicator)}
+          className={cx("bl-indicator", classNames.indicator)}
           style={styles.indicator}
           transform={`rotate(${toDegrees(g.indicatorAngle)})`}
           pointerEvents="none"
@@ -830,7 +861,7 @@ function FortuneWheelRender(
               <>
                 {indicatorPaths(indicator?.shape ?? "pin", g.indicatorScale, g.indicatorTip)}
                 <circle
-                  className="rpw-indicator-pin"
+                  className="bl-indicator-pin"
                   r={(indicator?.shape === "needle" ? 3.5 : 5) * g.indicatorScale}
                 />
               </>
@@ -842,8 +873,8 @@ function FortuneWheelRender(
       {g.hubRadius > 0 && (
         <button
           type="button"
-          className="rpw-hub-button"
-          aria-label={hub?.ariaLabel ?? hubText ?? "Spin"}
+          className="bl-hub-button"
+          aria-label={hub?.ariaLabel || hubText || "Spin"}
           disabled={!canSpin || spinning || hub?.clickable === false}
           tabIndex={hub?.clickable === false ? -1 : undefined}
           onClick={() => spin()}
@@ -864,7 +895,7 @@ function FortuneWheelRender(
       )}
 
       {describe && (
-        <p className="rpw-sr-only" aria-live="polite" dir="auto">
+        <p className="bl-sr-only" aria-live="polite" dir="auto">
           {winner ? describe(winner) : ""}
         </p>
       )}
@@ -875,7 +906,7 @@ function FortuneWheelRender(
 /**
  * A physics-driven prize wheel. Spin it with the hub, a ref (`ref.current.spin()`), or by
  * flicking it. Fully themable; see `FrameOptions`, `IndicatorOptions`, `HubOptions`,
- * `LabelOptions`, `classNames`, `styles` and the `--rpw-*` CSS variables.
+ * `LabelOptions`, `classNames`, `styles` and the `--bl-*` CSS variables.
  */
 export const FortuneWheel: ForwardRefExoticComponent<
   FortuneWheelProps & RefAttributes<FortuneWheelHandle>

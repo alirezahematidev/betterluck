@@ -6,7 +6,7 @@ import { TAU } from "./math";
 
 const pegs = Array.from({ length: 12 }, (_, i) => (i * TAU) / 12);
 const twelve = buildArcs(
-  pegs.map(() => ({ title: "", reward: "", frequency: 1, color: "#000" })),
+  pegs.map(() => ({ title: "", frequency: 1, color: "#000" })),
   "equal",
 );
 const geometryFor = (overrides: Partial<Parameters<typeof buildGeometry>[0]> = {}) =>

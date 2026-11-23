@@ -185,15 +185,15 @@
   color: var(--text-dim);
 }
 
+.result-chance {
+  color: var(--accent-2);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
 .result-title {
   font-size: 1.35rem;
   font-weight: 800;
-  overflow-wrap: anywhere;
-}
-
-.result-reward {
-  color: var(--accent-2);
-  font-weight: 600;
   overflow-wrap: anywhere;
 }
 
@@ -731,8 +731,8 @@ label.icon-btn:has(+ input:focus-visible) {
 
 .segment-fields {
   display: flex;
-  gap: 8px;
-  margin-block: 10px 8px;
+  gap: 16px;
+  margin-block: 10px;
   align-items: end;
 }
 
@@ -759,12 +759,11 @@ label.icon-btn:has(+ input:focus-visible) {
   white-space: nowrap;
 }
 
-.text-color-row {
+.text-color-controls {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-height: 30px;
-  margin-block-end: 8px;
+  gap: 8px;
+  min-height: 35px;
 }
 
 .mini-toggle {

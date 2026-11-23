@@ -1,13 +1,12 @@
 import type { CSSProperties, ReactNode } from "react";
 
 export interface Segment {
-  /** Stable identity for React keys. Optional; the index is used when missing. */
+  /** Your own identifier. Not used by the wheel; handy for telling results apart. */
   id?: string | number;
   title: string;
-  reward: string;
   /** Relative weight used to pick the winner. A frequency of 0 never wins. */
   frequency: number;
-  /** Slice fill: any CSS color. Hex values also drive the automatic label contrast. */
+  /** Slice fill: any CSS color. Hex, rgb() and hsl() values also drive the automatic label contrast. */
   color: string;
   /** Label color for this slice. Overrides `labels.color` and the automatic contrast. */
   textColor?: string;

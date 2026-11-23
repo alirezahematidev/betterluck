@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_PHYSICS, resolvePhysics } from "./config";
 import { mod, TAU } from "./math";
 import {
   angleAt,
@@ -138,6 +139,43 @@ describe("planCoast (flick)", () => {
       expect(plan.friction.k / friction.k).toBeCloseTo(scale, 9);
       expect(scale).toBeGreaterThan(0.4);
       expect(scale).toBeLessThan(2.5);
+    }
+  });
+});
+
+describe("resolvePhysics", () => {
+  it("fills defaults, orders the launch range and floors the flick threshold", () => {
+    const p = resolvePhysics({
+      minLaunchSpeed: 30,
+      maxLaunchSpeed: 10,
+      flickThreshold: 0.1,
+      friction: -1,
+    });
+    expect(p.minLaunchSpeed).toBe(10);
+    expect(p.maxLaunchSpeed).toBe(30);
+    expect(p.flickThreshold).toBe(2);
+    expect(p.friction).toBeGreaterThan(0);
+    expect(resolvePhysics({ drag: Number.NaN }).drag).toBe(DEFAULT_PHYSICS.drag);
+  });
+
+  it("weak flicks stay brisk: friction is never scaled below 0.45", () => {
+    const base = { mu: 0.9, k: 0.32 };
+    for (let i = 0; i < 200; i++) {
+      const speed = 2 + (i % 10);
+      const natural = coastDistance(speed, base);
+      const plan = planCoast({
+        startAngle: i * 0.37,
+        direction: 1,
+        launchSpeed: speed,
+        friction: base,
+        targetAngle: (i * 1.7) % TAU,
+        minTravel: Math.min(Math.PI, 0.6 * natural),
+      });
+      expect(plan.friction.mu / base.mu).toBeGreaterThanOrEqual(0.45 - 1e-9);
+      expect(plan.launchSpeed).toBeGreaterThanOrEqual(speed - 1e-9);
+      // Still lands exactly where planned.
+      expect(angleAt(plan, plan.duration - 1e-9)).toBeCloseTo(plan.endAngle, 5);
+      expect(plan.duration).toBeLessThan(8);
     }
   });
 });

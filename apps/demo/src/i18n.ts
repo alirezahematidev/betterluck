@@ -30,8 +30,6 @@ const en = {
   tabCode: "Code",
 
   titleField: "Title",
-  reward: "Reward",
-  rewardPlaceholder: "What the player gets",
   frequency: "Frequency",
   chance: "Chance",
   textColor: "Text color",
@@ -169,8 +167,6 @@ const fa: Messages = {
   tabCode: "کد",
 
   titleField: "عنوان",
-  reward: "جایزه",
-  rewardPlaceholder: "آنچه بازیکن می‌گیرد",
   frequency: "فراوانی",
   chance: "شانس",
   textColor: "رنگ متن",

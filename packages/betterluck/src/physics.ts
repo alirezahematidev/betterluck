@@ -163,7 +163,8 @@ export interface CoastInput {
  * user's hand, so instead the friction is scaled by a common factor c. Scaling both μ and k by c is
  * the same trajectory replayed at c× the speed of time, so travel becomes exactly distance / c —
  * the deceleration profile keeps its shape. The rest angle closest to the natural one is chosen to
- * keep c near 1.
+ * keep c near 1, and c never drops below MIN_COAST_SCALE (a weak throw gets a little extra speed
+ * rather than gliding on near-zero friction).
  */
 export function planCoast(input: CoastInput): SpinPlan {
   const { startAngle, direction, friction } = input;
@@ -180,13 +181,36 @@ export function planCoast(input: CoastInput): SpinPlan {
         : below + TAU;
   }
 
-  const c = natural / travel;
+  let c = natural / travel;
+  let launch = speed;
+  if (c < MIN_COAST_SCALE) {
+    // A weak flick toward a far target would crawl for ages on very low friction. Keep the
+    // friction plausible and give the throw a little more speed instead.
+    c = MIN_COAST_SCALE;
+    launch = speedForCoast(travel * c, friction);
+  }
   return makePlan(
     startAngle,
     direction,
-    speed,
+    launch,
     0,
     { mu: friction.mu * c, k: friction.k * c },
     travel,
   );
+}
+
+/** Lowest friction scale a flick may use; below it, the launch speed is raised instead. */
+const MIN_COAST_SCALE = 0.45;
+
+/** Launch speed whose natural coast covers `distance` (coast distance grows with speed). */
+function speedForCoast(distance: number, friction: Friction): number {
+  let lo = 0;
+  let hi = 1;
+  while (coastDistance(hi, friction) < distance) hi *= 2;
+  for (let i = 0; i < 100 && hi - lo > 1e-12; i++) {
+    const mid = (lo + hi) / 2;
+    if (coastDistance(mid, friction) < distance) lo = mid;
+    else hi = mid;
+  }
+  return (lo + hi) / 2;
 }

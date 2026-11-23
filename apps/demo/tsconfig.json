@@ -3,7 +3,7 @@
   "compilerOptions": {
     "types": ["vite/client", "node"],
     "paths": {
-      "react-physics-wheel": ["../../packages/react-physics-wheel/src/index.ts"]
+      "betterluck": ["../../packages/betterluck/src/index.ts"]
     }
   },
   "include": ["src", "vite.config.ts"]

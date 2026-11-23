@@ -1,5 +1,5 @@
 {
-  "name": "react-physics-wheel",
+  "name": "betterluck",
   "version": "0.0.0",
   "description": "A physics-driven, fully themable prize / fortune wheel for React with RTL and Persian support.",
   "keywords": [
@@ -24,7 +24,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/alirezahematidev/fortune-wheel.git",
-    "directory": "packages/react-physics-wheel"
+    "directory": "packages/betterluck"
   },
   "files": [
     "dist",

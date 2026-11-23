@@ -4,8 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm --filter demo dev",
-    "build": "pnpm --filter react-physics-wheel build && pnpm --filter demo build",
-    "build:lib": "pnpm --filter react-physics-wheel build",
+    "build": "pnpm --filter betterluck build && pnpm --filter demo build",
+    "build:lib": "pnpm --filter betterluck build",
     "build:demo": "pnpm --filter demo build",
     "test": "pnpm -r --if-present test",
     "typecheck": "pnpm -r --if-present typecheck",
@@ -14,7 +14,7 @@
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
-    "release": "pnpm --filter react-physics-wheel release"
+    "release": "pnpm --filter betterluck release"
   },
   "devDependencies": {
     "oxfmt": "^0.79.0",

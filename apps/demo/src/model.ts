@@ -1,4 +1,4 @@
-import { DEFAULT_PHYSICS, resolvePhysics } from "react-physics-wheel";
+import { DEFAULT_PHYSICS, resolvePhysics } from "betterluck";
 import type {
   IndicatorShape,
   LabelDirection,
@@ -6,7 +6,7 @@ import type {
   SegmentSizing,
   SpinDirection,
   WheelPhysics,
-} from "react-physics-wheel";
+} from "betterluck";
 import type { Locale } from "./i18n";
 
 export interface EditableSegment extends Segment {
@@ -86,26 +86,26 @@ const SAMPLE_SHAPE: { frequency: number; image?: string }[] = [
   { frequency: 5, image: "diamond" },
 ];
 
-const SAMPLE_TEXT: Record<Locale, [string, string][]> = {
+const SAMPLE_TITLES: Record<Locale, string[]> = {
   en: [
-    ["100 Coins", "100 coins"],
-    ["Free Spin", "One extra spin"],
-    ["Extra Life", "+1 life"],
-    ["Try Again", "Nothing this time"],
-    ["Mystery Gift", "A random gift box"],
-    ["Jackpot", "1,000 coins"],
-    ["50 Coins", "50 coins"],
-    ["Diamond", "5 diamonds"],
+    "100 Coins",
+    "Free Spin",
+    "Extra Life",
+    "Try Again",
+    "Mystery Gift",
+    "Jackpot",
+    "50 Coins",
+    "Diamond",
   ],
   fa: [
-    ["۱۰۰ سکه", "۱۰۰ سکه"],
-    ["چرخش رایگان", "یک چرخش اضافه"],
-    ["جان اضافه", "یک جان بیشتر"],
-    ["دوباره تلاش کن", "این بار جایزه‌ای نبود"],
-    ["جعبه‌ی شانس", "یک جعبه‌ی هدیه‌ی تصادفی"],
-    ["جایزه‌ی بزرگ", "۱۰۰۰ سکه"],
-    ["۵۰ سکه", "۵۰ سکه"],
-    ["الماس", "۵ الماس"],
+    "۱۰۰ سکه",
+    "چرخش رایگان",
+    "جان اضافه",
+    "دوباره تلاش کن",
+    "جعبه‌ی شانس",
+    "جایزه‌ی بزرگ",
+    "۵۰ سکه",
+    "الماس",
   ],
 };
 
@@ -223,8 +223,7 @@ export function sampleSegments(
 ): EditableSegment[] {
   return SAMPLE_SHAPE.map((shape, i) => ({
     id: newId(),
-    title: SAMPLE_TEXT[locale][i][0],
-    reward: SAMPLE_TEXT[locale][i][1],
+    title: SAMPLE_TITLES[locale][i],
     frequency: shape.frequency,
     color: palette[i % palette.length],
     ...(shape.image ? { image: icon(shape.image) } : {}),
@@ -297,7 +296,7 @@ export function switchLocale(config: DemoConfig, locale: Locale): DemoConfig {
  * Persistence
  * ---------------------------------------------------------------------------------------------- */
 
-const STORAGE_KEY = "react-physics-wheel/demo/v2";
+const STORAGE_KEY = "betterluck/demo/v3";
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null;
 
@@ -316,13 +315,19 @@ function mergeKnown<T>(base: T, stored: unknown): T {
 
 const str = (v: unknown): string => (typeof v === "string" ? v : "");
 
+/** `value` if it's one of `allowed`, else `fallback`. */
+const pick = <T extends string>(value: T, allowed: readonly T[], fallback: T): T =>
+  allowed.includes(value) ? value : fallback;
+
+const clampNumber = (v: number, min: number, max: number, fallback: number): number =>
+  Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : fallback;
+
 function parseSegment(raw: unknown): EditableSegment | null {
   if (!isRecord(raw)) return null;
   const frequency = Number(raw.frequency);
   return {
     id: str(raw.id) || newId(),
     title: str(raw.title),
-    reward: str(raw.reward),
     frequency: Number.isFinite(frequency) && frequency >= 0 ? frequency : 1,
     color: str(raw.color) || "#888888",
     ...(str(raw.textColor) ? { textColor: str(raw.textColor) } : {}),
@@ -343,11 +348,36 @@ export function loadConfig(): DemoConfig {
     const raw: unknown = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null");
     if (!isRecord(raw)) return defaultConfig(initialLocale());
     const locale: Locale = raw.locale === "fa" ? "fa" : "en";
-    const merged = mergeKnown(defaultConfig(locale), raw);
+    const base = defaultConfig(locale);
+    const merged = mergeKnown(base, raw);
     const segments = Array.isArray(raw.segments)
       ? raw.segments.map(parseSegment).filter((s): s is EditableSegment => s !== null)
       : merged.segments;
-    return { ...merged, locale, segments, physics: resolvePhysics(merged.physics) };
+    // Stored strings must still be valid choices; anything else falls back to the default.
+    return {
+      ...merged,
+      locale,
+      segments,
+      theme: merged.theme && Object.hasOwn(THEMES, merged.theme) ? merged.theme : null,
+      size: {
+        mode: pick(merged.size.mode, ["fit", "fixed"], "fit"),
+        px: clampNumber(merged.size.px, 140, 760, 520),
+      },
+      sizing: pick(merged.sizing, ["equal", "proportional"], "equal"),
+      spinDirection: pick(merged.spinDirection, ["clockwise", "counterclockwise"], "clockwise"),
+      physics: resolvePhysics(merged.physics),
+      indicator: {
+        ...merged.indicator,
+        position: pick(merged.indicator.position, ["top", "right", "bottom", "left"], "top"),
+        shape: pick(merged.indicator.shape, ["pin", "triangle", "needle"], "pin"),
+      },
+      labels: {
+        ...merged.labels,
+        font: pick(merged.labels.font, Object.keys(FONT_STACKS) as FontChoice[], base.labels.font),
+        colorMode: pick(merged.labels.colorMode, ["auto", "custom"], "auto"),
+        direction: pick(merged.labels.direction, ["auto", "ltr", "rtl"], "auto"),
+      },
+    };
   } catch {
     return defaultConfig(initialLocale());
   }
@@ -492,18 +522,17 @@ export function generateCode(config: DemoConfig): string {
   const style = objectLiteral(
     [
       ["fontFamily", l.font === "rounded" ? undefined : FONT_STACKS[l.font]],
-      ['"--rpw-label-weight"', l.weight === 700 ? undefined : l.weight],
+      ['"--bl-label-weight"', l.weight === 700 ? undefined : l.weight],
     ],
     "  ",
   );
   add("style", style);
-  props.push("onSpinEnd={({ segment }) => console.log(segment.reward)}");
+  props.push("onSpinEnd={({ segment }) => console.log(segment.title)}");
 
   const sample = config.segments.slice(0, 2).map((s) =>
     objectLiteral(
       [
         ["title", s.title],
-        ["reward", s.reward],
         ["frequency", s.frequency],
         ["color", s.color],
         ["textColor", s.textColor],
@@ -514,7 +543,7 @@ export function generateCode(config: DemoConfig): string {
   );
   const more = config.segments.length > 2 ? `\n  // …${config.segments.length - 2} more` : "";
 
-  return `import { FortuneWheel, type Segment } from "react-physics-wheel";
+  return `import { FortuneWheel, type Segment } from "betterluck";
 
 const segments: Segment[] = [
 ${sample.map((s) => `  ${s},`).join("\n")}${more}

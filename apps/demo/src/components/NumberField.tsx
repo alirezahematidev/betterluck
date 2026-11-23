@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { InputHTMLAttributes } from "react";
 import { useI18n } from "../i18n";
 import { parseLocaleNumber } from "../numbers";
@@ -16,14 +16,23 @@ interface NumberFieldProps extends Omit<
  * and only reports finite numbers upward.
  */
 export function NumberField({ value, onValueChange, onBlur, ...rest }: NumberFieldProps) {
-  const { num } = useI18n();
+  const { locale } = useI18n();
+  // Locale digits without thousands separators, so the text round-trips through the parser.
+  const plain = useMemo(
+    () =>
+      new Intl.NumberFormat(locale === "fa" ? "fa-IR" : "en-US", {
+        useGrouping: false,
+        maximumFractionDigits: 4,
+      }),
+    [locale],
+  );
   const [draft, setDraft] = useState<string | null>(null);
   return (
     <input
       {...rest}
       type="text"
       inputMode="decimal"
-      value={draft ?? num(value, 4).replace(/[٬,](?=\d{3})/g, "")}
+      value={draft ?? plain.format(value)}
       onChange={(e) => {
         setDraft(e.target.value);
         const n = parseLocaleNumber(e.target.value);

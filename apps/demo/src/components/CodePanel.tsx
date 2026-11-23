@@ -33,7 +33,7 @@ export function CodePanel({ config }: { config: DemoConfig }) {
   return (
     <div className="panel-stack">
       <p className="hint">{t.codeIntro}</p>
-      <CopyBlock code="pnpm add react-physics-wheel" />
+      <CopyBlock code="pnpm add betterluck" />
       <CopyBlock code={generateCode(config)} />
     </div>
   );
