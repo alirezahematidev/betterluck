@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.2](https://github.com/alirezahematidev/betterluck/compare/v0.1.1...v0.1.2) (2026-11-23)
+
+### Bug Fixes
+
+* remove some unrelated keywords ([6ca827c](https://github.com/alirezahematidev/betterluck/commit/6ca827c21d08aa0f3fbe6e71b58f92c449b61e58))
+
 ## [0.1.1](https://github.com/alirezahematidev/betterluck/compare/v0.1.0...v0.1.1) (2026-11-23)
 
 ### Bug Fixes
