@@ -2,7 +2,7 @@
 
 A physics-driven, fully themable prize wheel ("wheel of fortune") for React, with first-class **RTL and Persian** support.
 
-**[Live demo and playground →](https://alirezahematidev.github.io/fortune-wheel/)**
+**[Live demo and playground →](https://alirezahematidev.github.io/betterluck/)**
 
 - **Real physics.** The wheel spins up under torque, then coasts against axle friction and air drag. A spring-loaded flapper is knocked around by the rim's pegs and ticks as each one passes. You can also grab the wheel and flick it.
 - **Fair, or decided by you.** Results are weighted by `frequency` using a CSPRNG, or forced with `spin({ index })` (for example, when your server picks the result). Either way, the motion is solved so the wheel stops on the result. Nothing snaps into place at the end.

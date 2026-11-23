@@ -1,8 +1,8 @@
-# Fortune Wheel
+# betterluck
 
-A physics-driven, fully themable prize wheel for React, with RTL and Persian support. It's published as [`betterluck`](packages/betterluck).
+A physics-driven, fully themable fortune wheel for React, with RTL and Persian support. The library is the npm package [`betterluck`](packages/betterluck).
 
-**[Live demo and playground →](https://alirezahematidev.github.io/fortune-wheel/)** (English and فارسی)
+**[Live demo and playground →](https://alirezahematidev.github.io/betterluck/)** (English and فارسی)
 
 | Path                                         | What it is                                                                                    |
 | -------------------------------------------- | --------------------------------------------------------------------------------------------- |

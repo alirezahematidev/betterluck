@@ -15,15 +15,15 @@
     "wheel",
     "wheel-of-fortune"
   ],
-  "homepage": "https://alirezahematidev.github.io/fortune-wheel/",
+  "homepage": "https://alirezahematidev.github.io/betterluck/",
   "bugs": {
-    "url": "https://github.com/alirezahematidev/fortune-wheel/issues"
+    "url": "https://github.com/alirezahematidev/betterluck/issues"
   },
   "license": "MIT",
   "author": "alirezahematidev",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/alirezahematidev/fortune-wheel.git",
+    "url": "git+https://github.com/alirezahematidev/betterluck.git",
     "directory": "packages/betterluck"
   },
   "files": [

@@ -12,7 +12,7 @@ import { defaultConfig, FONT_STACKS, loadConfig, saveConfig, switchLocale, THEME
 import type { DemoConfig } from "./model";
 import "./App.css";
 
-const REPO_URL = "https://github.com/alirezahematidev/fortune-wheel";
+const REPO_URL = "https://github.com/alirezahematidev/betterluck";
 
 interface HistoryEntry {
   key: number;
