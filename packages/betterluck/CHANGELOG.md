@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.1](https://github.com/alirezahematidev/betterluck/compare/v0.1.0...v0.1.1) (2026-11-23)
+
+### Bug Fixes
+
+* rename demo package name ([760a076](https://github.com/alirezahematidev/betterluck/commit/760a076de9a3c3199f17ec5a7c568b1b187a943e))
+
 ## [0.1.0](https://github.com/alirezahematidev/betterluck/compare/v0.0.0...v0.1.0) (2026-11-23)
 
 ### Features
