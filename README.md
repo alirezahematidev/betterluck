@@ -89,7 +89,7 @@ pnpm release minor            # e.g. 0.0.0 → 0.1.0
 
 To release from your machine, run `npm login` once, set `GITHUB_TOKEN` (for example `export GITHUB_TOKEN=$(gh auth token)`), and run the command from a clean `main` branch.
 
-To release from GitHub instead, run the **Release** workflow and pick the increment. It publishes with npm provenance, using either [trusted publishing](https://docs.npmjs.com/trusted-publishers) (recommended: register this repository's `release.yml` for the package on npmjs.com) or an `NPM_TOKEN` secret.
+To release from GitHub instead, run the **Release** workflow. The default `auto` increment follows your commits (`feat` → minor, `fix` → patch, breaking → major); tick **dry run** first to check everything without publishing. It publishes with npm provenance, using either [trusted publishing](https://docs.npmjs.com/trusted-publishers) (recommended: register this repository's `release.yml` for the package on npmjs.com) or an `NPM_TOKEN` secret.
 
 Every push to `main` redeploys the playground to GitHub Pages.
 

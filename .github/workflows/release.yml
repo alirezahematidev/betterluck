@@ -7,10 +7,10 @@ on:
   workflow_dispatch:
     inputs:
       increment:
-        description: "Version increment"
+        description: "Version increment (auto: derived from Conventional Commits)"
         type: choice
-        options: [patch, minor, major, prepatch, preminor, premajor, prerelease]
-        default: patch
+        options: [auto, patch, minor, major, prepatch, preminor, premajor, prerelease]
+        default: auto
       dry_run:
         description: "Dry run: verify everything, including npm auth, without publishing, tagging or pushing"
         type: boolean
@@ -57,7 +57,8 @@ jobs:
           INCREMENT: ${{ inputs.increment }}
           DRY_RUN: ${{ inputs.dry_run }}
         run: |
-          args=("$INCREMENT" --ci --npm.publishArgs=--provenance)
+          args=(--ci --npm.publishArgs=--provenance)
+          if [ "$INCREMENT" != "auto" ]; then args=("$INCREMENT" "${args[@]}"); fi
           # With a token, release-it verifies npm auth before changing anything. Trusted
           # publishing has no credentials until publish time, so the checks can't run.
           if [ -z "$NODE_AUTH_TOKEN" ]; then args+=(--npm.skipChecks); fi
