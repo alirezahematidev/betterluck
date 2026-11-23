@@ -4,13 +4,17 @@
   "description": "A physics-driven, fully themable prize / fortune wheel for React with RTL and Persian support.",
   "keywords": [
     "fortune-wheel",
+    "giveaway",
+    "lucky-wheel",
     "persian",
     "physics",
     "prize-wheel",
     "react",
+    "react-component",
     "roulette",
     "rtl",
     "spin-wheel",
+    "spinner",
     "svg",
     "wheel",
     "wheel-of-fortune"
