@@ -1,0 +1,28 @@
+{
+  "name": "fortune-wheel-monorepo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --filter demo dev",
+    "build": "pnpm --filter react-physics-wheel build && pnpm --filter demo build",
+    "build:lib": "pnpm --filter react-physics-wheel build",
+    "build:demo": "pnpm --filter demo build",
+    "test": "pnpm -r --if-present test",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
+    "release": "pnpm --filter react-physics-wheel release"
+  },
+  "devDependencies": {
+    "oxfmt": "^0.79.0",
+    "oxlint": "^1.94.0",
+    "typescript": "~7.0.2"
+  },
+  "engines": {
+    "node": ">=20.19"
+  },
+  "packageManager": "pnpm@12.4.1"
+}

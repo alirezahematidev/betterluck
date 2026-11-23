@@ -1,0 +1,68 @@
+:root {
+  color-scheme: dark;
+  --bg: #120c24;
+  --surface: #221a40;
+  --surface-2: #2b2250;
+  --border: rgb(255 255 255 / 0.1);
+  --border-strong: rgb(255 255 255 / 0.18);
+  --text: #f1eefc;
+  --text-dim: #a9a2c8;
+  --accent: #ff5a6e;
+  --accent-2: #ffd166;
+  --focus: #8fb6ff;
+  --radius: 12px;
+  font-family:
+    ui-rounded, "SF Pro Rounded", Nunito, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+:root:lang(fa) {
+  font-family: Vazirmatn, Tahoma, system-ui, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background:
+    radial-gradient(1200px 700px at 20% -10%, #3a2675 0%, transparent 60%),
+    radial-gradient(900px 600px at 110% 10%, #4a1f5c 0%, transparent 55%), var(--bg);
+  background-attachment: fixed;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
